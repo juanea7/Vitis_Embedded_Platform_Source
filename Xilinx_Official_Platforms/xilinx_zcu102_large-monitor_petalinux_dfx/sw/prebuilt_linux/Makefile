@@ -24,8 +24,13 @@ $(DTB_FILE): check-vitis $(XSA)
 	@if [ ! -d $(BOOT_DIR) ]; then mkdir -p $(BOOT_DIR); fi
 	@mkdir -p $(SW_DIR)/tmp
 	$(info "DTB generation started using XSCT")
-	$(info $(XSCT) -eval "createdts -hw $(XSA) -git-url https://github.com/Xilinx/device-tree-xlnx.git -git-branch xlnx_rel_v2024.2 -board $(BOARD) -platform $(PLATFORM) -out $(SW_DIR)/tmp -dtsi $(SYSTEM_USER_DTSI) -compile")
-	@$(XSCT) -eval "createdts -hw $(XSA) -git-url https://github.com/Xilinx/device-tree-xlnx.git -git-branch xlnx_rel_v2024.2 -board $(BOARD) -platform $(PLATFORM) -out $(SW_DIR)/tmp -dtsi $(SYSTEM_USER_DTSI) -compile"
+	$(info $(XSCT) -eval "createdts -hw $(XSA) -git-url https://github.com/Xilinx/device-tree-xlnx.git -git-branch xlnx_rel_v2024.2 -board $(BOARD) -platform $(PLATFORM) -out $(SW_DIR)/tmp -dtsi $(SYSTEM_USER_DTSI)")
+	@$(XSCT) -eval "createdts -hw $(XSA) -git-url https://github.com/Xilinx/device-tree-xlnx.git -git-branch xlnx_rel_v2024.2 -board $(BOARD) -platform $(PLATFORM) -out $(SW_DIR)/tmp -dtsi $(SYSTEM_USER_DTSI)"
+	$(eval BSP_PATH = $(SW_DIR)/tmp/$(PLATFORM)/$(CORE)/device_tree_domain/bsp/)
+	# The approach followed with xsct does not create symbols, not the -overlay flag. We had to compile it on our own.
+	aarch64-linux-gnu-gcc -E -nostdinc -x assembler-with-cpp -I$(BSP_PATH)/include -o $(BSP_PATH)/system.dts $(BSP_PATH)/system-top.dts
+	dtc -I dts -O dtb -@ -o $(BSP_PATH)/system.dtb $(BSP_PATH)/system.dts
+	dtc -I dtb -O dts -@ -o $(BSP_PATH)/testing.dts $(BSP_PATH)/system.dtb
 	$(eval BSP_PATH = $(SW_DIR)/tmp/$(PLATFORM)/$(CORE)/device_tree_domain/bsp/)
 	@if [ ! -f $(BSP_PATH)/system.dtb ]; then echo -e "ERROR: Device tree generation failed\n"; exit 1; fi
 	cp $(BSP_PATH)/system.dtb $(DTB_FILE) -v
